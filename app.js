@@ -13,6 +13,92 @@ const stepDescription = document.querySelector("#step-description");
 const dotOne = document.querySelector("#dot-one");
 const dotTwo = document.querySelector("#dot-two");
 
+const channelModal = document.querySelector("#channel-modal");
+const channelDescription = document.querySelector("#channel-description");
+const successModal = document.querySelector("#success-modal");
+const successMessage = document.querySelector("#success-message");
+const successDone = document.querySelector("#success-done");
+
+function openModal(modal) {
+  if (!modal || modal.classList.contains("is-open")) return;
+
+  modal.classList.remove("hidden", "is-closing");
+  modal.setAttribute("aria-hidden", "false");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      modal.classList.add("is-open");
+      document.body.classList.add("modal-open");
+    });
+  });
+}
+
+function closeModal(modal) {
+  if (!modal || !modal.classList.contains("is-open")) return Promise.resolve();
+
+  modal.classList.remove("is-open");
+  modal.classList.add("is-closing");
+
+  return new Promise((resolve) => {
+    window.setTimeout(() => {
+      modal.classList.remove("is-closing");
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+
+      const hasOpenModal = [...document.querySelectorAll(".modal-layer")]
+        .some((item) => item.classList.contains("is-open"));
+
+      if (!hasOpenModal) {
+        document.body.classList.remove("modal-open");
+      }
+
+      resolve();
+    }, 240);
+  });
+}
+
+function openChannelModal(mode = "welcome") {
+  if (channelDescription) {
+    channelDescription.textContent = mode === "success"
+      ? "Aktivasi sudah selesai. Ikuti saluran ZNN untuk mendapatkan update layanan, fitur baru, dan pengumuman berikutnya."
+      : "Dapatkan info update layanan, fitur baru, dan pengumuman penting langsung dari saluran WhatsApp.";
+  }
+
+  openModal(channelModal);
+}
+
+function openSuccessModal(message) {
+  if (successMessage && message) {
+    successMessage.textContent = message;
+  }
+
+  openModal(successModal);
+}
+
+document.querySelectorAll("[data-channel-close]").forEach((button) => {
+  button.addEventListener("click", () => closeModal(channelModal));
+});
+
+successDone?.addEventListener("click", async () => {
+  await closeModal(successModal);
+  await new Promise((resolve) => setTimeout(resolve, 140));
+  openChannelModal("success");
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+
+  if (successModal?.classList.contains("is-open")) {
+    closeModal(successModal);
+    return;
+  }
+
+  if (channelModal?.classList.contains("is-open")) {
+    closeModal(channelModal);
+  }
+});
+
+
 let stage = "send";
 let activeEmail = "";
 
@@ -165,14 +251,18 @@ mainForm.addEventListener("submit", async (event) => {
       link
     });
 
-    setNotice(
-      "success",
-      getMessage(data, "Verifikasi berhasil. Premium sudah diproses.")
+    const successText = getMessage(
+      data,
+      "Verifikasi berhasil. Premium sudah diproses."
     );
+
+    setNotice("success", successText);
 
     statusTitle.textContent = "Verifikasi berhasil";
     statusText.textContent = "Permintaan aktivasi premium sudah diproses.";
     currentInput().value = "";
+
+    openSuccessModal(successText);
   } catch (error) {
     setNotice(
       "error",
@@ -188,3 +278,10 @@ if (savedEmail) {
   const input = currentInput();
   if (input) input.value = savedEmail;
 }
+
+
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    openChannelModal("welcome");
+  }, 650);
+});
