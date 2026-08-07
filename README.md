@@ -1,51 +1,36 @@
 # Alight Motion Activation — Vercel
 
-Frontend sederhana untuk alur verifikasi Alight Motion melalui API ZNN.
+Web frontend untuk alur verifikasi Alight Motion melalui API ZNN.
 
-Token API tidak pernah dikirim ke browser. Token hanya dibaca oleh Vercel Serverless Function dari Environment Variables.
+Token API tidak pernah dikirim ke browser. Token dibaca oleh Vercel Serverless Function dari Environment Variables lalu diteruskan ke API melalui header:
 
-## Deploy ke Vercel
-
-1. Upload folder ini ke GitHub.
-2. Import repository di Vercel.
-3. Buka **Project → Settings → Environment Variables**.
-4. Tambahkan:
-
-```env
-AM_TOKEN=token_kamu
-AM_API_BASE=https://api.znn.my.id/alightmotion
-AM_TOKEN_PARAM=token
+```http
+Authorization: Bearer <AM_TOKEN>
 ```
 
-5. Aktifkan variabel untuk Production, Preview, dan Development sesuai kebutuhan.
-6. Redeploy.
+## Environment Variables
 
-Jangan commit `.env` atau token asli ke GitHub.
+Tambahkan di **Vercel → Project → Settings → Environment Variables**:
+
+```env
+AM_TOKEN=am_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+AM_API_BASE=https://api.znn.my.id/alightmotion
+```
+
+Isi `AM_TOKEN` cukup token mentah yang diawali `am_`. Jangan tambahkan `Bearer` sendiri.
+
+Set untuk **Production** dan **Preview** sesuai kebutuhan, lalu lakukan **Redeploy** setelah mengubah Environment Variables.
+
+`AM_TOKEN_PARAM` tidak dipakai lagi dan boleh dihapus dari Vercel.
 
 ## Endpoint internal web
 
-- `POST /api/send` body `{ "email": "user@example.com" }`
-- `POST /api/verify` body `{ "email": "user@example.com", "link": "https://..." }`
+- `POST /api/send`
+- `POST /api/verify`
 
-Kedua endpoint serverless akan meneruskan request ke:
+Serverless function meneruskan request ke:
 
-- `/alightmotion/send`
-- `/alightmotion/verify`
+- `GET https://api.znn.my.id/alightmotion/send?...`
+- `GET https://api.znn.my.id/alightmotion/verify?...`
 
-Token otomatis ditambahkan di sisi server sebagai query parameter yang namanya dikontrol oleh `AM_TOKEN_PARAM`.
-
-## Local
-
-Dengan Vercel CLI:
-
-```bash
-vercel dev
-```
-
-Buat `.env.local`:
-
-```env
-AM_TOKEN=token_kamu
-AM_API_BASE=https://api.znn.my.id/alightmotion
-AM_TOKEN_PARAM=token
-```
+Token tidak dimasukkan ke query URL.

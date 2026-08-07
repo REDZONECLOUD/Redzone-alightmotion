@@ -14,6 +14,7 @@ export function validateEmail(value) {
 
 export function validateVerificationLink(value) {
   const link = cleanString(value, 4096);
+
   try {
     const url = new URL(link);
     if (url.protocol !== "https:") return "";
@@ -32,10 +33,15 @@ function sanitize(value, depth = 0) {
 
   if (typeof value === "object") {
     const out = {};
+
     for (const [key, item] of Object.entries(value)) {
-      if (/token|secret|authorization|api[_-]?key|credential/i.test(key)) continue;
+      if (/token|secret|authorization|api[_-]?key|credential/i.test(key)) {
+        continue;
+      }
+
       out[key] = sanitize(item, depth + 1);
     }
+
     return out;
   }
 
@@ -48,41 +54,61 @@ function sanitize(value, depth = 0) {
   return value;
 }
 
+function authorizationValue(token) {
+  const value = cleanString(token, 4096);
+
+  if (/^Bearer\s+/i.test(value)) {
+    return value;
+  }
+
+  return "Bearer " + value;
+}
+
 export async function callAlightMotion(action, params = {}) {
   const token = cleanString(process.env.AM_TOKEN, 4096);
+
   if (!token) {
-    const error = new Error("AM_TOKEN belum diatur di Environment Variables Vercel.");
+    const error = new Error(
+      "AM_TOKEN belum diatur di Environment Variables Vercel."
+    );
     error.statusCode = 500;
     throw error;
   }
 
-  const base = cleanString(process.env.AM_API_BASE || DEFAULT_BASE, 1024)
-    .replace(/\/+$/, "");
-
-  const tokenParam = cleanString(process.env.AM_TOKEN_PARAM || "token", 64) || "token";
+  const base = cleanString(
+    process.env.AM_API_BASE || DEFAULT_BASE,
+    1024
+  ).replace(/\/+$/, "");
 
   const url = new URL(base + "/" + action);
-  url.searchParams.set(tokenParam, token);
 
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && String(value) !== "") {
+    if (
+      value !== undefined &&
+      value !== null &&
+      String(value) !== ""
+    ) {
       url.searchParams.set(key, String(value));
     }
   }
 
   let response;
+
   try {
     response = await fetch(url, {
       method: "GET",
       headers: {
         accept: "application/json",
-        "user-agent": "znn-am-activation/1.0"
+        Authorization: authorizationValue(token),
+        "user-agent": "znn-am-activation/1.1"
       },
       redirect: "follow",
       signal: AbortSignal.timeout(28000)
     });
   } catch {
-    const error = new Error("Tidak dapat terhubung ke layanan Alight Motion.");
+    const error = new Error(
+      "Tidak dapat terhubung ke layanan Alight Motion."
+    );
     error.statusCode = 502;
     throw error;
   }
@@ -95,13 +121,19 @@ export async function callAlightMotion(action, params = {}) {
   } catch {
     data = {
       status: false,
-      message: raw.slice(0, 1000) || "Respons API tidak dapat dibaca."
+      message:
+        raw.slice(0, 1000) ||
+        "Respons API tidak dapat dibaca."
     };
   }
 
   const safeData = sanitize(data);
+
   return {
-    ok: response.ok && safeData && safeData.status !== false,
+    ok:
+      response.ok &&
+      safeData &&
+      safeData.status !== false,
     statusCode: response.status,
     data: safeData
   };
@@ -109,18 +141,25 @@ export async function callAlightMotion(action, params = {}) {
 
 export function sendJson(res, statusCode, payload) {
   res.setHeader("Cache-Control", "no-store, max-age=0");
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader(
+    "Content-Type",
+    "application/json; charset=utf-8"
+  );
+
   return res.status(statusCode).json(payload);
 }
 
 export function onlyPost(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
+
     sendJson(res, 405, {
       status: false,
       message: "Method tidak didukung."
     });
+
     return false;
   }
+
   return true;
 }
