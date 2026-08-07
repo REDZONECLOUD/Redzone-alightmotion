@@ -202,11 +202,56 @@ function switchToVerify(email) {
   guideEmail.textContent = "Email verifikasi sudah dikirim ke " + email + ".";
   guideEmail.classList.add("sent");
 
-  localStorage.setItem("znn_am_email", email);
 
   setTimeout(() => {
     textarea.focus();
   }, 120);
+}
+
+
+function resetActivationForm() {
+  stage = "send";
+  activeEmail = "";
+
+  const oldInput = currentInput();
+  const input = document.createElement("input");
+
+  input.id = "main-input";
+  input.name = "email";
+  input.type = "email";
+  input.inputMode = "email";
+  input.autocomplete = "email";
+  input.maxLength = 254;
+  input.placeholder = "nama@email.com";
+  input.required = true;
+
+  oldInput.replaceWith(input);
+
+  fieldLabelText.textContent = "Email target";
+  fieldIcon.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M4 6.8h16v10.4H4z" stroke="currentColor" stroke-width="1.8"/>
+      <path d="m5 8 7 5 7-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+
+  stepKicker.textContent = "Langkah 1 dari 2";
+  stepTitle.textContent = "Kirim email verifikasi";
+  stepDescription.textContent = "Masukkan email yang digunakan untuk akun Alight Motion.";
+  buttonText.textContent = "Kirim link verifikasi";
+
+  statusTitle.textContent = "Layanan siap digunakan";
+  statusText.textContent = "API terhubung dan menunggu permintaan.";
+
+  dotTwo.classList.remove("active");
+  dotOne.classList.add("active");
+
+  guideEmail.textContent =
+    "Setelah link dikirim, ikuti langkah berikut untuk menyelesaikan verifikasi.";
+  guideEmail.classList.remove("sent");
+
+  clearNotice();
+  localStorage.removeItem("znn_am_email");
 }
 
 mainForm.addEventListener("submit", async (event) => {
@@ -262,7 +307,12 @@ mainForm.addEventListener("submit", async (event) => {
     statusText.textContent = "Permintaan aktivasi premium sudah diproses.";
     currentInput().value = "";
 
+    localStorage.removeItem("znn_am_email");
     openSuccessModal(successText);
+
+    setTimeout(() => {
+      resetActivationForm();
+    }, 350);
   } catch (error) {
     setNotice(
       "error",
@@ -273,11 +323,6 @@ mainForm.addEventListener("submit", async (event) => {
   }
 });
 
-const savedEmail = localStorage.getItem("znn_am_email");
-if (savedEmail) {
-  const input = currentInput();
-  if (input) input.value = savedEmail;
-}
 
 
 window.addEventListener("load", () => {
