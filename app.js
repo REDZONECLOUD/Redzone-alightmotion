@@ -330,3 +330,608 @@ window.addEventListener("load", () => {
     openChannelModal("welcome");
   }, 650);
 });
+
+const bulkToggle = document.querySelector("#bulk-toggle");
+const inboxToggle = document.querySelector("#inbox-toggle");
+const toolsPanel = document.querySelector("#tools-panel");
+const toolsClose = document.querySelector("#tools-close");
+const toolsTitle = document.querySelector("#tools-title");
+const toolsDescription = document.querySelector("#tools-description");
+const bulkPanel = document.querySelector("#bulk-panel");
+const inboxPanel = document.querySelector("#inbox-panel");
+
+const bulkForm = document.querySelector("#bulk-form");
+const bulkAmount = document.querySelector("#bulk-amount");
+const bulkSubmit = document.querySelector("#bulk-submit");
+const bulkButtonText = document.querySelector("#bulk-button-text");
+const bulkNotice = document.querySelector("#bulk-notice");
+const bulkResults = document.querySelector("#bulk-results");
+
+const inboxForm = document.querySelector("#inbox-form");
+const inboxEmail = document.querySelector("#inbox-email");
+const inboxSubmit = document.querySelector("#inbox-submit");
+const inboxButtonText = document.querySelector("#inbox-button-text");
+const inboxNotice = document.querySelector("#inbox-notice");
+const inboxResults = document.querySelector("#inbox-results");
+
+let activeTool = "bulk";
+let lastToolToggle = bulkToggle;
+
+function showTools(tab = "bulk", scroll = true) {
+  toolsPanel.classList.remove("hidden");
+  selectToolTab(tab);
+
+  if (scroll) {
+    window.setTimeout(() => {
+      toolsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }
+}
+
+function hideTools() {
+  toolsPanel.classList.add("hidden");
+  bulkToggle.setAttribute("aria-expanded", "false");
+  inboxToggle.setAttribute("aria-expanded", "false");
+  bulkToggle.classList.remove("active");
+  inboxToggle.classList.remove("active");
+  lastToolToggle?.focus();
+}
+
+function selectToolTab(name) {
+  const selected = name === "inbox" ? "inbox" : "bulk";
+  activeTool = selected;
+
+  const bulkActive = selected === "bulk";
+  bulkToggle.setAttribute("aria-expanded", String(bulkActive));
+  inboxToggle.setAttribute("aria-expanded", String(!bulkActive));
+  bulkToggle.classList.toggle("active", bulkActive);
+  inboxToggle.classList.toggle("active", !bulkActive);
+
+  bulkPanel.classList.toggle("hidden", selected !== "bulk");
+  inboxPanel.classList.toggle("hidden", selected !== "inbox");
+
+  toolsTitle.textContent = bulkActive ? "Bulk email" : "Baca email terbaru";
+  toolsDescription.textContent = bulkActive
+    ? "Buat beberapa email sekaligus melalui API Alight Motion Bulk."
+    : "Masukkan alamat email untuk mengambil link Alight Motion dari pesan paling baru.";
+}
+
+bulkToggle?.addEventListener("click", () => {
+  lastToolToggle = bulkToggle;
+  if (!toolsPanel.classList.contains("hidden") && activeTool === "bulk") {
+    hideTools();
+    return;
+  }
+  showTools("bulk");
+});
+
+inboxToggle?.addEventListener("click", () => {
+  lastToolToggle = inboxToggle;
+  if (!toolsPanel.classList.contains("hidden") && activeTool === "inbox") {
+    hideTools();
+    return;
+  }
+  showTools("inbox");
+});
+
+toolsClose?.addEventListener("click", hideTools);
+
+function setToolNotice(element, type, message) {
+  element.className = "notice " + type;
+  element.textContent = String(message || "");
+}
+
+function clearToolNotice(element) {
+  element.className = "notice hidden";
+  element.textContent = "";
+}
+
+function setToolBusy(button, textElement, busy, busyText, idleText) {
+  button.disabled = busy;
+  textElement.textContent = busy ? busyText : idleText;
+}
+
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function collectEmails(value, output = [], depth = 0) {
+  if (depth > 8 || value == null) return output;
+
+  if (typeof value === "string") {
+    const matches = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+    matches.forEach((email) => {
+      const normalized = email.toLowerCase();
+      if (!output.includes(normalized)) output.push(normalized);
+    });
+    return output;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectEmails(item, output, depth + 1));
+    return output;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value).forEach((item) => collectEmails(item, output, depth + 1));
+  }
+
+  return output;
+}
+
+async function copyText(value, button) {
+  const text = String(value || "");
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const helper = document.createElement("textarea");
+    helper.value = text;
+    helper.setAttribute("readonly", "");
+    helper.style.position = "fixed";
+    helper.style.opacity = "0";
+    document.body.appendChild(helper);
+    helper.select();
+    document.execCommand("copy");
+    helper.remove();
+  }
+
+  if (!button) return;
+  const oldText = button.textContent;
+  button.textContent = "Tersalin";
+  window.setTimeout(() => {
+    button.textContent = oldText;
+  }, 1200);
+}
+
+function createResultsHead(title, detail) {
+  const head = document.createElement("div");
+  head.className = "results-head";
+
+  const strong = document.createElement("strong");
+  strong.textContent = title;
+
+  const span = document.createElement("span");
+  span.textContent = detail;
+
+  head.append(strong, span);
+  return head;
+}
+
+function bulkFilename() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  return "alightmotion-bulk-" +
+    now.getFullYear() +
+    pad(now.getMonth() + 1) +
+    pad(now.getDate()) + "-" +
+    pad(now.getHours()) +
+    pad(now.getMinutes()) + ".txt";
+}
+
+function downloadBulkFile(emails) {
+  const content = emails.join("\n") + "\n";
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = bulkFilename();
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function renderBulkResults(data, requestedAmount) {
+  bulkResults.replaceChildren();
+  const emails = collectEmails(data?.result ?? data?.data ?? data);
+  const declaredAmount = Number(
+    data?.amount ?? data?.count ?? data?.data?.count ?? data?.result?.count
+  );
+  const resultCount = Number.isFinite(declaredAmount) && declaredAmount >= 0
+    ? declaredAmount
+    : emails.length;
+
+  bulkResults.append(
+    createResultsHead(
+      "Hasil bulk",
+      resultCount + (resultCount === 1 ? " email" : " email")
+    )
+  );
+
+  if (!emails.length) {
+    const raw = document.createElement("pre");
+    raw.className = "raw-result";
+    raw.textContent = JSON.stringify(data?.result ?? data?.data ?? data, null, 2);
+    bulkResults.append(raw);
+    bulkResults.classList.remove("hidden");
+    return;
+  }
+
+  if (requestedAmount > 10) {
+    const downloadCard = document.createElement("div");
+    downloadCard.className = "bulk-download-card";
+
+    const title = document.createElement("strong");
+    title.textContent = "Hasil disiapkan sebagai file TXT";
+
+    const description = document.createElement("span");
+    description.textContent = emails.length + " email akan ditulis satu per baris.";
+
+    const downloadButton = document.createElement("button");
+    downloadButton.className = "download-button";
+    downloadButton.type = "button";
+    downloadButton.textContent = "Download hasil .txt";
+    downloadButton.addEventListener("click", () => downloadBulkFile(emails));
+
+    downloadCard.append(title, description, downloadButton);
+    bulkResults.append(downloadCard);
+    bulkResults.classList.remove("hidden");
+    return;
+  }
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "bulk-result-toolbar";
+
+  const copyAllButton = document.createElement("button");
+  copyAllButton.className = "result-button";
+  copyAllButton.type = "button";
+  copyAllButton.textContent = "Salin semua";
+  copyAllButton.addEventListener("click", () => {
+    copyText(emails.join("\n"), copyAllButton);
+  });
+
+  toolbar.append(copyAllButton);
+  bulkResults.append(toolbar);
+
+  const list = document.createElement("div");
+  list.className = "email-results";
+
+  emails.forEach((email, index) => {
+    const item = document.createElement("div");
+    item.className = "email-result";
+
+    const copy = document.createElement("div");
+    copy.className = "email-result-copy";
+
+    const value = document.createElement("strong");
+    value.textContent = email;
+
+    const label = document.createElement("span");
+    label.textContent = "Email " + (index + 1);
+
+    copy.append(value, label);
+
+    const actions = document.createElement("div");
+    actions.className = "result-actions";
+
+    const copyButton = document.createElement("button");
+    copyButton.className = "result-button secondary";
+    copyButton.type = "button";
+    copyButton.textContent = "Salin";
+    copyButton.addEventListener("click", () => copyText(email, copyButton));
+
+    actions.append(copyButton);
+    item.append(copy, actions);
+    list.append(item);
+  });
+
+  bulkResults.append(list);
+  bulkResults.classList.remove("hidden");
+}
+
+function firstString(value, keys) {
+  if (!value || typeof value !== "object") return "";
+
+  for (const key of keys) {
+    const item = value[key];
+    if (typeof item === "string" && item.trim()) return item.trim();
+    if (typeof item === "number") return String(item);
+  }
+
+  return "";
+}
+
+function stripHtml(value) {
+  const text = String(value || "");
+  if (!/<[a-z][\s\S]*>/i.test(text)) return text.trim();
+
+  const parsed = new DOMParser().parseFromString(text, "text/html");
+  return String(parsed.body?.textContent || "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function validHttpUrl(value) {
+  try {
+    const url = new URL(String(value || "").replace(/&amp;/g, "&"));
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
+function collectLinks(value, output = [], depth = 0) {
+  if (depth > 6 || value == null) return output;
+
+  if (typeof value === "string") {
+    const urls = value.match(/https?:\/\/[^\s<>"']+/gi) || [];
+    urls.forEach((item) => {
+      const url = validHttpUrl(item.replace(/[),.;]+$/, ""));
+      if (url && !output.includes(url)) output.push(url);
+    });
+    return output;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectLinks(item, output, depth + 1));
+    return output;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value).forEach((item) => collectLinks(item, output, depth + 1));
+  }
+
+  return output;
+}
+
+function normalizeMessages(data) {
+  const payload = data?.data ?? data?.result ?? data ?? {};
+  const source = payload?.messages ?? payload?.inbox ?? payload?.mails ?? [];
+
+  if (Array.isArray(source)) return source.filter(Boolean);
+
+  if (source && typeof source === "object") {
+    const messageKeys = ["subject", "title", "body", "text", "html", "from", "sender"];
+    if (messageKeys.some((key) => Object.prototype.hasOwnProperty.call(source, key))) {
+      return [source];
+    }
+
+    return Object.values(source).filter(
+      (item) => item && typeof item === "object"
+    );
+  }
+
+  return [];
+}
+
+function messageLinks(message, body) {
+  const preferred = [
+    message?.login_url,
+    message?.loginUrl,
+    message?.verification_url,
+    message?.verificationUrl,
+    message?.link,
+    message?.url
+  ];
+  const output = [];
+
+  preferred.forEach((item) => {
+    const url = validHttpUrl(item);
+    if (url && !output.includes(url)) output.push(url);
+  });
+
+  collectLinks(message?.links, output);
+  collectLinks(body, output);
+  return output;
+}
+
+function newestMessage(messages) {
+  if (!messages.length) return null;
+
+  return messages.reduce((latest, message) => {
+    const latestDate = Date.parse(firstString(latest, [
+      "received", "date", "received_at", "receivedAt", "created_at", "createdAt", "time"
+    ]));
+    const messageDate = Date.parse(firstString(message, [
+      "received", "date", "received_at", "receivedAt", "created_at", "createdAt", "time"
+    ]));
+
+    if (Number.isFinite(messageDate) && (!Number.isFinite(latestDate) || messageDate > latestDate)) {
+      return message;
+    }
+
+    return latest;
+  }, messages[0]);
+}
+
+function latestAlightLink(message) {
+  if (!message) return "";
+
+  const bodyValue = firstString(message, [
+    "text", "plain", "message", "body", "content", "textBody", "htmlBody", "html"
+  ]);
+  const links = messageLinks(message, bodyValue);
+
+  return links.find((url) => /alight-creative|alightcreative/i.test(url)) || "";
+}
+
+function createLatestLinkCard(message, link) {
+  const card = document.createElement("article");
+  card.className = "message-card";
+
+  const topline = document.createElement("div");
+  topline.className = "message-topline";
+
+  const title = document.createElement("h3");
+  title.className = "message-title";
+  title.textContent = firstString(message, ["subject", "title", "topic"]) || "Pesan terbaru";
+
+  const badge = document.createElement("span");
+  badge.className = "message-number";
+  badge.textContent = "AM";
+
+  topline.append(title, badge);
+  card.append(topline);
+
+  const from = firstString(message, [
+    "from", "sender", "from_address", "fromAddress", "sender_email", "senderEmail"
+  ]);
+  const received = firstString(message, [
+    "received", "date", "received_at", "receivedAt", "created_at", "createdAt", "time"
+  ]);
+
+  if (from || received) {
+    const meta = document.createElement("div");
+    meta.className = "message-meta";
+
+    if (from) {
+      const line = document.createElement("span");
+      line.textContent = "Dari: " + from;
+      meta.append(line);
+    }
+
+    if (received) {
+      const line = document.createElement("span");
+      line.textContent = "Waktu: " + received;
+      meta.append(line);
+    }
+
+    card.append(meta);
+  }
+
+  const row = document.createElement("div");
+  row.className = "message-link login-link";
+
+  const copy = document.createElement("div");
+  copy.className = "message-link-copy";
+
+  const label = document.createElement("strong");
+  label.textContent = "Login ke Alight Creative";
+
+  const preview = document.createElement("span");
+  preview.textContent = link;
+  copy.append(label, preview);
+
+  const actions = document.createElement("div");
+  actions.className = "result-actions";
+
+  const open = document.createElement("a");
+  open.className = "result-button secondary";
+  open.href = link;
+  open.target = "_blank";
+  open.rel = "noopener noreferrer";
+  open.textContent = "Buka";
+
+  const copyButton = document.createElement("button");
+  copyButton.className = "result-button";
+  copyButton.type = "button";
+  copyButton.textContent = "Salin link";
+  copyButton.addEventListener("click", () => copyText(link, copyButton));
+
+  actions.append(open, copyButton);
+  row.append(copy, actions);
+
+  const links = document.createElement("div");
+  links.className = "message-links";
+  links.append(row);
+  card.append(links);
+
+  return card;
+}
+
+function renderInboxResults(data, email) {
+  inboxResults.replaceChildren();
+  const messages = normalizeMessages(data);
+  const latest = newestMessage(messages);
+  const link = latestAlightLink(latest);
+
+  inboxResults.append(
+    createResultsHead(
+      "Link terbaru",
+      email
+    )
+  );
+
+  if (!messages.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-result";
+    empty.textContent = "Belum ada pesan. Tunggu sebentar lalu ambil link terbaru lagi.";
+    inboxResults.append(empty);
+    inboxResults.classList.remove("hidden");
+    return { foundMessage: false, foundLink: false };
+  }
+
+  if (!link) {
+    const empty = document.createElement("div");
+    empty.className = "empty-result";
+    empty.textContent = "Pesan terbaru ditemukan, tapi link Alight Motion belum terbaca.";
+    inboxResults.append(empty);
+    inboxResults.classList.remove("hidden");
+    return { foundMessage: true, foundLink: false };
+  }
+
+  inboxResults.append(createLatestLinkCard(latest, link));
+  inboxResults.classList.remove("hidden");
+  return { foundMessage: true, foundLink: true };
+}
+
+bulkForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearToolNotice(bulkNotice);
+  bulkResults.classList.add("hidden");
+
+  const amount = Number(bulkAmount.value);
+  if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
+    setToolNotice(bulkNotice, "error", "Jumlah bulk harus berupa angka 1 sampai 100.");
+    return;
+  }
+
+  setToolBusy(bulkSubmit, bulkButtonText, true, "Memproses bulk...", "Buat email bulk");
+
+  try {
+    const data = await postJson("/api/bulk", { amount });
+    renderBulkResults(data, amount);
+    setToolNotice(
+      bulkNotice,
+      "success",
+      getMessage(data, "Bulk email berhasil diproses.")
+    );
+  } catch (error) {
+    setToolNotice(
+      bulkNotice,
+      "error",
+      error.message || "Bulk email gagal diproses."
+    );
+  } finally {
+    setToolBusy(bulkSubmit, bulkButtonText, false, "", "Buat email bulk");
+  }
+});
+
+inboxForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearToolNotice(inboxNotice);
+  inboxResults.classList.add("hidden");
+
+  const email = inboxEmail.value.trim().toLowerCase();
+  if (!isEmail(email)) {
+    setToolNotice(inboxNotice, "error", "Masukkan email yang valid.");
+    return;
+  }
+
+  setToolBusy(inboxSubmit, inboxButtonText, true, "Mengambil link...", "Ambil link terbaru");
+
+  try {
+    const data = await postJson("/api/inbox", { email });
+    const result = renderInboxResults(data, email);
+    setToolNotice(
+      inboxNotice,
+      result.foundLink ? "success" : result.foundMessage ? "error" : "success",
+      result.foundLink
+        ? "Link Alight Motion dari pesan terbaru berhasil ditemukan."
+        : result.foundMessage
+          ? "Pesan terbaru ada, tapi link Alight Motion belum ditemukan."
+          : "Inbox berhasil dicek, belum ada pesan baru."
+    );
+  } catch (error) {
+    setToolNotice(
+      inboxNotice,
+      "error",
+      error.message || "Inbox gagal dibaca."
+    );
+  } finally {
+    setToolBusy(inboxSubmit, inboxButtonText, false, "", "Ambil link terbaru");
+  }
+});

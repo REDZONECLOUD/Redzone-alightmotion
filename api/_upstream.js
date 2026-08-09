@@ -1,4 +1,5 @@
 const DEFAULT_BASE = "https://api.znn.my.id/alightmotion";
+const DEFAULT_API_ROOT = "https://api.znn.my.id";
 
 function cleanString(value, max = 4000) {
   return String(value ?? "").trim().slice(0, max);
@@ -124,6 +125,61 @@ export async function callAlightMotion(action, params = {}) {
       message:
         raw.slice(0, 1000) ||
         "Respons API tidak dapat dibaca."
+    };
+  }
+
+  const safeData = sanitize(data);
+
+  return {
+    ok:
+      response.ok &&
+      safeData &&
+      safeData.status !== false,
+    statusCode: response.status,
+    data: safeData
+  };
+}
+
+export async function callTempMailRead(email) {
+  const root = cleanString(
+    process.env.TEMPMAIL_API_BASE || DEFAULT_API_ROOT,
+    1024
+  ).replace(/\/+$/, "");
+
+  const url = new URL(root + "/tempmail-read");
+  url.searchParams.set("email", email);
+
+  let response;
+
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        "user-agent": "znn-am-activation/1.2"
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(28000)
+    });
+  } catch {
+    const error = new Error(
+      "Tidak dapat terhubung ke layanan Temp Mail."
+    );
+    error.statusCode = 502;
+    throw error;
+  }
+
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = {
+      status: false,
+      message:
+        raw.slice(0, 1000) ||
+        "Respons Temp Mail tidak dapat dibaca."
     };
   }
 

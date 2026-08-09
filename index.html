@@ -22,16 +22,124 @@
         </span>
       </a>
 
-      <span class="service-badge">
-        <i></i>
-        Online
-      </span>
+      <div class="service-actions">
+        <span class="service-badge">
+          <i></i>
+          Online
+        </span>
+
+        <button
+          class="tool-nav-button"
+          id="bulk-toggle"
+          type="button"
+          aria-controls="tools-panel"
+          aria-expanded="false"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 5.5h6.5V12H4zM13.5 5.5H20V12h-6.5zM4 15h6.5v3.5H4zM13.5 15H20v3.5h-6.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+          </svg>
+          <span>Bulk</span>
+        </button>
+
+        <button
+          class="tool-nav-button"
+          id="inbox-toggle"
+          type="button"
+          aria-controls="tools-panel"
+          aria-expanded="false"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 6.8h16v10.4H4z" stroke="currentColor" stroke-width="1.8"/>
+            <path d="m5 8 7 5 7-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Baca Email</span>
+        </button>
+      </div>
     </header>
 
     <section class="hero">
       <span class="eyebrow">ALIGHT MOTION</span>
       <h1>Aktivasi Premium</h1>
       <p>Kirim link verifikasi ke email, lalu selesaikan aktivasi dari satu halaman.</p>
+    </section>
+
+    <section class="tools-card hidden" id="tools-panel" aria-labelledby="tools-title">
+      <div class="tools-heading">
+        <div>
+          <span class="tools-kicker">TOOLS</span>
+          <h2 id="tools-title">Tools Alight Motion</h2>
+          <p id="tools-description">Buat beberapa email sekaligus melalui API Alight Motion Bulk.</p>
+        </div>
+
+        <button class="tools-close" id="tools-close" type="button" aria-label="Tutup tools">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="tool-pane" id="bulk-panel" aria-label="Bulk email">
+        <form id="bulk-form" novalidate>
+          <div class="field-group">
+            <label for="bulk-amount">Jumlah email</label>
+            <div class="field-shell">
+              <span class="field-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M7 4.5h10M7 9.5h10M7 14.5h6M5 4.5h.01M5 9.5h.01M5 14.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <input id="bulk-amount" name="amount" type="number" inputmode="numeric" min="1" max="100" step="1" value="1" required>
+            </div>
+            <span class="field-help">Minimal 1 dan maksimal 100 email.</span>
+          </div>
+
+          <button class="primary-button tool-submit" id="bulk-submit" type="submit">
+            <span id="bulk-button-text">Buat email bulk</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </form>
+
+        <div id="bulk-notice" class="notice hidden" role="status" aria-live="polite"></div>
+        <div id="bulk-results" class="tool-results hidden"></div>
+      </div>
+
+      <div class="tool-pane hidden" id="inbox-panel" aria-label="Baca email">
+        <form id="inbox-form" novalidate>
+          <div class="field-group">
+            <label for="inbox-email">Email yang ingin dicek</label>
+            <div class="field-shell">
+              <span class="field-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 6.8h16v10.4H4z" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="m5 8 7 5 7-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <input id="inbox-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="alamat@tempmail.com" required>
+            </div>
+            <span class="field-help">Masukkan email secara manual. Bulk tidak akan membaca inbox otomatis.</span>
+          </div>
+
+          <button class="primary-button tool-submit" id="inbox-submit" type="submit">
+            <span id="inbox-button-text">Ambil link terbaru</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 5v4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </form>
+
+        <div id="inbox-notice" class="notice hidden" role="status" aria-live="polite"></div>
+        <div id="inbox-results" class="tool-results hidden"></div>
+      </div>
+
+      <div class="security-note tools-security">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3 5.5 5.6v5.1c0 4.3 2.7 8.1 6.5 9.3 3.8-1.2 6.5-5 6.5-9.3V5.6L12 3Z" stroke="currentColor" stroke-width="1.7"/>
+          <path d="m9.3 11.7 1.8 1.8 3.7-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Token bulk tetap diproses di server. Pembaca email hanya menampilkan link Alight Motion dari pesan terbaru.</span>
+      </div>
     </section>
 
     <section class="activation-card">
@@ -97,7 +205,7 @@
           <path d="M12 3 5.5 5.6v5.1c0 4.3 2.7 8.1 6.5 9.3 3.8-1.2 6.5-5 6.5-9.3V5.6L12 3Z" stroke="currentColor" stroke-width="1.7"/>
           <path d="m9.3 11.7 1.8 1.8 3.7-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>Aktivasi dan email kalian tidak disimpan di server.</span>
+        <span>Token API diproses di server dan tidak ditampilkan di browser.</span>
       </div>
     </section>
 
@@ -166,7 +274,7 @@
     </section>
 
     <footer class="footer">
-      <span>© 2026 znn_id</span>
+      <span>© 2026 ZNN</span>
       <span class="footer-dot">•</span>
       <span>api.znn.my.id</span>
     </footer>
