@@ -1,8 +1,8 @@
 # Alight Motion Activation — Vercel
 
-Web frontend untuk aktivasi Alight Motion, bulk email, dan pengecekan inbox Temp Mail melalui API ZNN.
+Web frontend untuk aktivasi Alight Motion, pembuatan bulk email Premium siap pakai, dan pengecekan inbox Temp Mail melalui API ZNN.
 
-Menu kanan terdiri dari **Online**, **Bulk**, dan **Baca Email**. Hasil bulk 1–10 email dapat disalin. Permintaan di atas 10 email disiapkan sebagai file `.txt`. Pembaca email hanya mengembalikan link Alight Motion dari pesan terbaru.
+Menu kanan terdiri dari **Utama**, **Bulk**, dan **Baca Email**. Bulk menghasilkan email Alight Motion yang Premium-nya langsung aktif tanpa proses verify. Hasil 1–10 email dapat disalin, sedangkan hasil di atas 10 disiapkan sebagai file `.txt`. Pembaca email hanya mengembalikan link Alight Motion dari pesan terbaru.
 
 Token API tidak pernah dikirim ke browser. Token dibaca oleh Vercel Serverless Function dari Environment Variables lalu diteruskan ke API melalui header:
 

@@ -23,10 +23,19 @@
       </a>
 
       <div class="service-actions">
-        <span class="service-badge">
-          <i></i>
-          Online
-        </span>
+        <button
+          class="tool-nav-button active"
+          id="main-toggle"
+          type="button"
+          aria-controls="activation-card guide-card"
+          aria-current="page"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m4 10 8-6 8 6v9H4v-9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M9.5 19v-5h5v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+          <span>Utama</span>
+        </button>
 
         <button
           class="tool-nav-button"
@@ -58,9 +67,9 @@
     </header>
 
     <section class="hero">
-      <span class="eyebrow">ALIGHT MOTION</span>
-      <h1>Aktivasi Premium</h1>
-      <p>Kirim link verifikasi ke email, lalu selesaikan aktivasi dari satu halaman.</p>
+      <span class="eyebrow" id="hero-eyebrow">ALIGHT MOTION</span>
+      <h1 id="hero-title">Aktivasi Premium</h1>
+      <p id="hero-description">Kirim link verifikasi ke email, lalu selesaikan aktivasi dari satu halaman.</p>
     </section>
 
     <section class="tools-card hidden" id="tools-panel" aria-labelledby="tools-title">
@@ -68,7 +77,7 @@
         <div>
           <span class="tools-kicker">TOOLS</span>
           <h2 id="tools-title">Tools Alight Motion</h2>
-          <p id="tools-description">Buat beberapa email sekaligus melalui API Alight Motion Bulk.</p>
+          <p id="tools-description">Buat beberapa email Alight Motion yang Premium-nya langsung aktif.</p>
         </div>
 
         <button class="tools-close" id="tools-close" type="button" aria-label="Tutup tools">
@@ -90,11 +99,11 @@
               </span>
               <input id="bulk-amount" name="amount" type="number" inputmode="numeric" min="1" max="100" step="1" value="1" required>
             </div>
-            <span class="field-help">Minimal 1 dan maksimal 100 email.</span>
+            <span class="field-help">Minimal 1 dan maksimal 100 email Premium.</span>
           </div>
 
           <button class="primary-button tool-submit" id="bulk-submit" type="submit">
-            <span id="bulk-button-text">Buat email bulk</span>
+            <span id="bulk-button-text">Buat email Premium</span>
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -142,7 +151,7 @@
       </div>
     </section>
 
-    <section class="activation-card">
+    <section class="activation-card" id="activation-card">
       <div class="card-topline">
         <div class="step-copy">
           <span id="step-kicker">Langkah 1 dari 2</span>
@@ -209,7 +218,7 @@
       </div>
     </section>
 
-    <section class="guide-card">
+    <section class="guide-card" id="guide-card">
       <div class="guide-header">
         <div class="guide-icon">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">

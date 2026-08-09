@@ -331,6 +331,7 @@ window.addEventListener("load", () => {
   }, 650);
 });
 
+const mainToggle = document.querySelector("#main-toggle");
 const bulkToggle = document.querySelector("#bulk-toggle");
 const inboxToggle = document.querySelector("#inbox-toggle");
 const toolsPanel = document.querySelector("#tools-panel");
@@ -339,6 +340,11 @@ const toolsTitle = document.querySelector("#tools-title");
 const toolsDescription = document.querySelector("#tools-description");
 const bulkPanel = document.querySelector("#bulk-panel");
 const inboxPanel = document.querySelector("#inbox-panel");
+const activationCard = document.querySelector("#activation-card");
+const guideCard = document.querySelector("#guide-card");
+const heroEyebrow = document.querySelector("#hero-eyebrow");
+const heroTitle = document.querySelector("#hero-title");
+const heroDescription = document.querySelector("#hero-description");
 
 const bulkForm = document.querySelector("#bulk-form");
 const bulkAmount = document.querySelector("#bulk-amount");
@@ -357,7 +363,57 @@ const inboxResults = document.querySelector("#inbox-results");
 let activeTool = "bulk";
 let lastToolToggle = bulkToggle;
 
+function setActiveNavigation(active) {
+  const onMain = active === "main";
+  const onBulk = active === "bulk";
+  const onInbox = active === "inbox";
+
+  mainToggle.classList.toggle("active", onMain);
+  bulkToggle.classList.toggle("active", onBulk);
+  inboxToggle.classList.toggle("active", onInbox);
+
+  mainToggle.toggleAttribute("aria-current", onMain);
+  bulkToggle.setAttribute("aria-expanded", String(onBulk));
+  inboxToggle.setAttribute("aria-expanded", String(onInbox));
+}
+
+function setHero(view) {
+  if (view === "bulk") {
+    heroEyebrow.textContent = "ALIGHT MOTION BULK";
+    heroTitle.textContent = "Bulk Email";
+    heroDescription.textContent = "Buat beberapa email Alight Motion yang Premium-nya langsung aktif dan siap dipakai.";
+    return;
+  }
+
+  if (view === "inbox") {
+    heroEyebrow.textContent = "TEMP MAIL";
+    heroTitle.textContent = "Baca Email";
+    heroDescription.textContent = "Ambil link Alight Motion dari pesan terbaru pada alamat email yang kamu masukkan.";
+    return;
+  }
+
+  heroEyebrow.textContent = "ALIGHT MOTION";
+  heroTitle.textContent = "Aktivasi Premium";
+  heroDescription.textContent = "Kirim link verifikasi ke email, lalu selesaikan aktivasi dari satu halaman.";
+}
+
+function showMain(scroll = true) {
+  toolsPanel.classList.add("hidden");
+  activationCard.classList.remove("hidden");
+  guideCard.classList.remove("hidden");
+  setActiveNavigation("main");
+  setHero("main");
+
+  if (scroll) {
+    window.setTimeout(() => {
+      document.querySelector(".hero")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }
+}
+
 function showTools(tab = "bulk", scroll = true) {
+  activationCard.classList.add("hidden");
+  guideCard.classList.add("hidden");
   toolsPanel.classList.remove("hidden");
   selectToolTab(tab);
 
@@ -369,12 +425,8 @@ function showTools(tab = "bulk", scroll = true) {
 }
 
 function hideTools() {
-  toolsPanel.classList.add("hidden");
-  bulkToggle.setAttribute("aria-expanded", "false");
-  inboxToggle.setAttribute("aria-expanded", "false");
-  bulkToggle.classList.remove("active");
-  inboxToggle.classList.remove("active");
-  lastToolToggle?.focus();
+  showMain();
+  mainToggle?.focus({ preventScroll: true });
 }
 
 function selectToolTab(name) {
@@ -382,35 +434,29 @@ function selectToolTab(name) {
   activeTool = selected;
 
   const bulkActive = selected === "bulk";
-  bulkToggle.setAttribute("aria-expanded", String(bulkActive));
-  inboxToggle.setAttribute("aria-expanded", String(!bulkActive));
-  bulkToggle.classList.toggle("active", bulkActive);
-  inboxToggle.classList.toggle("active", !bulkActive);
+  setActiveNavigation(selected);
+  setHero(selected);
 
   bulkPanel.classList.toggle("hidden", selected !== "bulk");
   inboxPanel.classList.toggle("hidden", selected !== "inbox");
 
   toolsTitle.textContent = bulkActive ? "Bulk email" : "Baca email terbaru";
   toolsDescription.textContent = bulkActive
-    ? "Buat beberapa email sekaligus melalui API Alight Motion Bulk."
+    ? "Buat beberapa email Alight Motion yang Premium-nya langsung aktif."
     : "Masukkan alamat email untuk mengambil link Alight Motion dari pesan paling baru.";
 }
 
+mainToggle?.addEventListener("click", () => {
+  showMain();
+});
+
 bulkToggle?.addEventListener("click", () => {
   lastToolToggle = bulkToggle;
-  if (!toolsPanel.classList.contains("hidden") && activeTool === "bulk") {
-    hideTools();
-    return;
-  }
   showTools("bulk");
 });
 
 inboxToggle?.addEventListener("click", () => {
   lastToolToggle = inboxToggle;
-  if (!toolsPanel.classList.contains("hidden") && activeTool === "inbox") {
-    hideTools();
-    return;
-  }
   showTools("inbox");
 });
 
@@ -535,8 +581,8 @@ function renderBulkResults(data, requestedAmount) {
 
   bulkResults.append(
     createResultsHead(
-      "Hasil bulk",
-      resultCount + (resultCount === 1 ? " email" : " email")
+      "Email Premium siap dipakai",
+      resultCount + (resultCount === 1 ? " email Premium" : " email Premium")
     )
   );
 
@@ -557,7 +603,7 @@ function renderBulkResults(data, requestedAmount) {
     title.textContent = "Hasil disiapkan sebagai file TXT";
 
     const description = document.createElement("span");
-    description.textContent = emails.length + " email akan ditulis satu per baris.";
+    description.textContent = emails.length + " email Premium akan ditulis satu per baris.";
 
     const downloadButton = document.createElement("button");
     downloadButton.className = "download-button";
@@ -879,7 +925,7 @@ bulkForm?.addEventListener("submit", async (event) => {
     return;
   }
 
-  setToolBusy(bulkSubmit, bulkButtonText, true, "Memproses bulk...", "Buat email bulk");
+  setToolBusy(bulkSubmit, bulkButtonText, true, "Membuat email Premium...", "Buat email Premium");
 
   try {
     const data = await postJson("/api/bulk", { amount });
@@ -887,16 +933,16 @@ bulkForm?.addEventListener("submit", async (event) => {
     setToolNotice(
       bulkNotice,
       "success",
-      getMessage(data, "Bulk email berhasil diproses.")
+      getMessage(data, "Email Premium berhasil dibuat dan siap dipakai.")
     );
   } catch (error) {
     setToolNotice(
       bulkNotice,
       "error",
-      error.message || "Bulk email gagal diproses."
+      error.message || "Email Premium gagal dibuat."
     );
   } finally {
-    setToolBusy(bulkSubmit, bulkButtonText, false, "", "Buat email bulk");
+    setToolBusy(bulkSubmit, bulkButtonText, false, "", "Buat email Premium");
   }
 });
 
