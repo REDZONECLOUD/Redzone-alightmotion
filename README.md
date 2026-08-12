@@ -1,47 +1,52 @@
 # Alight Motion Activation — Vercel
 
-Web frontend untuk aktivasi Alight Motion, pembuatan bulk email Premium siap pakai, dan pengecekan inbox Temp Mail melalui API ZNN.
+Web frontend untuk aktivasi Alight Motion melalui API ZNN.
 
-Menu kanan terdiri dari **Utama**, **Bulk**, dan **Baca Email**. Bulk menghasilkan email Alight Motion yang Premium-nya langsung aktif tanpa proses verify. Hasil 1–10 email dapat disalin, sedangkan hasil di atas 10 disiapkan sebagai file `.txt`. Pembaca email hanya mengembalikan link Alight Motion dari pesan terbaru.
+## Status fitur web
 
-Token API tidak pernah dikirim ke browser. Token dibaca oleh Vercel Serverless Function dari Environment Variables lalu diteruskan ke API melalui header:
+- Aktivasi / Send: aktif
+- Verify: aktif
+- Bulk: tetap dinonaktifkan di web dan membuka popup menuju bot WhatsApp
+- Baca Email: mengikuti UI project saat ini
 
-```http
-Authorization: Bearer <AM_TOKEN>
-```
+Bulk sengaja tidak dibuka kembali oleh patch ini.
 
 ## Environment Variables
 
 Tambahkan di **Vercel → Project → Settings → Environment Variables**:
 
 ```env
+ZNN_ACCESS_TOKEN=znn_vcl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 AM_TOKEN=am_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 AM_API_BASE=https://api.znn.my.id/alightmotion
 TEMPMAIL_API_BASE=https://api.znn.my.id
 ```
 
-Isi `AM_TOKEN` cukup token mentah yang diawali `am_`. Jangan tambahkan `Bearer` sendiri.
+`ZNN_ACCESS_TOKEN` diambil dari **admin.znn.my.id → IP Whitelist → Akses Vercel**.
 
-Set untuk **Production** dan **Preview** sesuai kebutuhan, lalu lakukan **Redeploy** setelah mengubah Environment Variables.
+Setidaknya aktifkan environment variables untuk **Production**. Jika Preview juga dipakai, aktifkan untuk Preview.
 
-`TEMPMAIL_API_BASE` boleh tidak diisi karena nilai default-nya sudah `https://api.znn.my.id`.
+Setelah menambah atau mengganti environment variable, lakukan **Redeploy**.
 
-`AM_TOKEN_PARAM` tidak dipakai lagi dan boleh dihapus dari Vercel.
+## Alur request
+
+Browser tidak menerima token.
+
+```text
+Browser
+  -> Vercel Serverless Function
+  -> X-ZNN-Access: ZNN_ACCESS_TOKEN
+  -> X-AM-Token: AM_TOKEN
+  -> api.znn.my.id
+```
+
+Untuk endpoint non-AM seperti Temp Mail, Vercel hanya mengirim `X-ZNN-Access`.
 
 ## Endpoint internal web
 
 - `POST /api/send`
 - `POST /api/verify`
-- `POST /api/bulk` body `{ "amount": 1 }`
-- `POST /api/inbox` body `{ "email": "alamat@tempmail.com" }`
+- `POST /api/inbox`
+- `POST /api/bulk` masih ada di source lama untuk kompatibilitas, tetapi UI Bulk tetap dikunci oleh popup bot WhatsApp.
 
-Serverless function meneruskan request ke:
-
-- `GET https://api.znn.my.id/alightmotion/send?...`
-- `GET https://api.znn.my.id/alightmotion/verify?...`
-- `GET https://api.znn.my.id/alightmotion/bulk?amount=...`
-- `GET https://api.znn.my.id/tempmail-read?email=...`
-
-Token AM hanya dikirim melalui header Authorization oleh Vercel Serverless Function dan tidak dimasukkan ke query URL.
-
-Route `/api/inbox` menyaring respons Temp Mail di server. Browser tidak menerima isi lengkap inbox atau pesan lama.
+Jangan taruh `ZNN_ACCESS_TOKEN` atau `AM_TOKEN` di frontend, `index.html`, atau `app.js`.

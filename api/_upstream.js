@@ -67,10 +67,19 @@ function authorizationValue(token) {
 
 export async function callAlightMotion(action, params = {}) {
   const token = cleanString(process.env.AM_TOKEN, 4096);
+  const accessToken = cleanString(process.env.ZNN_ACCESS_TOKEN, 4096);
 
   if (!token) {
     const error = new Error(
       "AM_TOKEN belum diatur di Environment Variables Vercel."
+    );
+    error.statusCode = 500;
+    throw error;
+  }
+
+  if (!accessToken) {
+    const error = new Error(
+      "ZNN_ACCESS_TOKEN belum diatur di Environment Variables Vercel."
     );
     error.statusCode = 500;
     throw error;
@@ -100,8 +109,9 @@ export async function callAlightMotion(action, params = {}) {
       method: "GET",
       headers: {
         accept: "application/json",
-        Authorization: authorizationValue(token),
-        "user-agent": "znn-am-activation/1.1"
+        "X-ZNN-Access": accessToken,
+        "X-AM-Token": token,
+        "user-agent": "znn-am-activation/1.3"
       },
       redirect: "follow",
       signal: AbortSignal.timeout(28000)
@@ -141,6 +151,16 @@ export async function callAlightMotion(action, params = {}) {
 }
 
 export async function callTempMailRead(email) {
+  const accessToken = cleanString(process.env.ZNN_ACCESS_TOKEN, 4096);
+
+  if (!accessToken) {
+    const error = new Error(
+      "ZNN_ACCESS_TOKEN belum diatur di Environment Variables Vercel."
+    );
+    error.statusCode = 500;
+    throw error;
+  }
+
   const root = cleanString(
     process.env.TEMPMAIL_API_BASE || DEFAULT_API_ROOT,
     1024
@@ -156,7 +176,8 @@ export async function callTempMailRead(email) {
       method: "GET",
       headers: {
         accept: "application/json",
-        "user-agent": "znn-am-activation/1.2"
+        "X-ZNN-Access": accessToken,
+        "user-agent": "znn-am-activation/1.3"
       },
       redirect: "follow",
       signal: AbortSignal.timeout(28000)
