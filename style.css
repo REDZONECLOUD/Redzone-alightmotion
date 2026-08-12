@@ -1347,3 +1347,44 @@ body.modal-open {
     height: 70px;
   }
 }
+
+
+/* Bulk & Baca Email dipindahkan ke bot WhatsApp */
+.bot-only-card {
+  padding-top: 34px;
+}
+
+.bot-only-badge {
+  width: 72px;
+  height: 72px;
+  margin: 2px auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: #5d5af2;
+  background: linear-gradient(145deg, #f0efff, #e7e7ff);
+  box-shadow: 0 0 0 10px rgba(93, 90, 242, .055);
+}
+
+.bot-only-badge svg {
+  width: 36px;
+  height: 36px;
+}
+
+.bot-only-kicker {
+  color: #5d5af2;
+}
+
+.bot-only-action {
+  background: linear-gradient(135deg, #5d5af2, #4b47df);
+  box-shadow: 0 12px 28px rgba(93, 90, 242, .2);
+}
+
+.bot-only-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(93, 90, 242, .24);
+}
+
+.bot-only-action:active {
+  transform: translateY(0);
+}

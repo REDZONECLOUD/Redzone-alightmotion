@@ -15,6 +15,7 @@ const dotTwo = document.querySelector("#dot-two");
 
 const channelModal = document.querySelector("#channel-modal");
 const channelDescription = document.querySelector("#channel-description");
+const botOnlyModal = document.querySelector("#bot-only-modal");
 const successModal = document.querySelector("#success-modal");
 const successMessage = document.querySelector("#success-message");
 const successDone = document.querySelector("#success-done");
@@ -75,8 +76,20 @@ function openSuccessModal(message) {
   openModal(successModal);
 }
 
+async function openBotOnlyModal() {
+  if (channelModal?.classList.contains("is-open")) {
+    await closeModal(channelModal);
+  }
+
+  openModal(botOnlyModal);
+}
+
 document.querySelectorAll("[data-channel-close]").forEach((button) => {
   button.addEventListener("click", () => closeModal(channelModal));
+});
+
+document.querySelectorAll("[data-bot-only-close]").forEach((button) => {
+  button.addEventListener("click", () => closeModal(botOnlyModal));
 });
 
 successDone?.addEventListener("click", async () => {
@@ -90,6 +103,11 @@ document.addEventListener("keydown", (event) => {
 
   if (successModal?.classList.contains("is-open")) {
     closeModal(successModal);
+    return;
+  }
+
+  if (botOnlyModal?.classList.contains("is-open")) {
+    closeModal(botOnlyModal);
     return;
   }
 
@@ -412,6 +430,9 @@ function showMain(scroll = true) {
 }
 
 function showTools(tab = "bulk", scroll = true) {
+  openBotOnlyModal();
+  return;
+
   activationCard.classList.add("hidden");
   guideCard.classList.add("hidden");
   toolsPanel.classList.remove("hidden");
@@ -452,12 +473,12 @@ mainToggle?.addEventListener("click", () => {
 
 bulkToggle?.addEventListener("click", () => {
   lastToolToggle = bulkToggle;
-  showTools("bulk");
+  openBotOnlyModal();
 });
 
 inboxToggle?.addEventListener("click", () => {
   lastToolToggle = inboxToggle;
-  showTools("inbox");
+  openBotOnlyModal();
 });
 
 toolsClose?.addEventListener("click", hideTools);
@@ -916,6 +937,9 @@ function renderInboxResults(data, email) {
 
 bulkForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  openBotOnlyModal();
+  return;
+
   clearToolNotice(bulkNotice);
   bulkResults.classList.add("hidden");
 
@@ -948,6 +972,9 @@ bulkForm?.addEventListener("submit", async (event) => {
 
 inboxForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  openBotOnlyModal();
+  return;
+
   clearToolNotice(inboxNotice);
   inboxResults.classList.add("hidden");
 
