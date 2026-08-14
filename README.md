@@ -20,7 +20,7 @@ AM_API_BASE=https://api.znn.my.id/alightmotion
 TEMPMAIL_API_BASE=https://api.znn.my.id
 ```
 
-`ZNN_ACCESS_TOKEN` minta ke dari fauzan.
+`ZNN_ACCESS_TOKEN` minta ke fauzan.
 
 Setidaknya aktifkan environment variables untuk **Production**. Jika Preview juga dipakai, aktifkan untuk Preview.
 
