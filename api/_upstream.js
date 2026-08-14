@@ -240,3 +240,16 @@ export function onlyPost(req, res) {
 
   return true;
 }
+
+export function onlyGet(req, res) {
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    sendJson(res, 405, {
+      status: false,
+      message: "Method tidak didukung."
+    });
+    return false;
+  }
+
+  return true;
+}
