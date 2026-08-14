@@ -171,7 +171,10 @@ async function postJson(url, body) {
   }
 
   if (!response.ok || data?.status === false) {
-    throw new Error(getMessage(data, "Permintaan gagal diproses."));
+    const error = new Error(getMessage(data, "Permintaan gagal diproses."));
+    error.code = data?.code || data?.error?.code || data?.error || data?.data?.code || "";
+    error.data = data;
+    throw error;
   }
 
   return data;
@@ -370,6 +373,7 @@ const bulkSubmit = document.querySelector("#bulk-submit");
 const bulkButtonText = document.querySelector("#bulk-button-text");
 const bulkNotice = document.querySelector("#bulk-notice");
 const bulkResults = document.querySelector("#bulk-results");
+const bulkLimitHelp = document.querySelector("#bulk-limit-help");
 
 const inboxForm = document.querySelector("#inbox-form");
 const inboxEmail = document.querySelector("#inbox-email");
@@ -380,6 +384,54 @@ const inboxResults = document.querySelector("#inbox-results");
 
 let activeTool = "bulk";
 let lastToolToggle = bulkToggle;
+let bulkStatus = null;
+let bulkStatusLoading = false;
+
+function effectiveBulkMax(status) {
+  if (!status) return 100;
+  const maximum = Math.max(0, Number(status.bulk_max) || 0);
+  if (status.unlimited_daily) return maximum;
+  const remaining = Math.max(0, Number(status.bulk_remaining_today) || 0);
+  return Math.min(maximum, remaining);
+}
+
+function applyBulkStatus(status) {
+  bulkStatus = status;
+  const maximum = effectiveBulkMax(status);
+  bulkAmount.max = String(Math.max(1, maximum));
+  if (Number(bulkAmount.value) > maximum && maximum > 0) bulkAmount.value = String(maximum);
+  bulkSubmit.disabled = maximum === 0;
+
+  if (maximum === 0) {
+    bulkLimitHelp.textContent = "Kuota Bulk Web hari ini habis.";
+    setToolNotice(bulkNotice, "error", "Kuota Bulk Web hari ini habis.");
+    openBotOnlyModal();
+  } else if (status.unlimited_daily) {
+    bulkLimitHelp.textContent = `Maksimal ${maximum} akun per request • tanpa limit harian.`;
+  } else {
+    bulkLimitHelp.textContent = `Maksimal ${maximum} akun saat ini • sisa ${status.bulk_remaining_today} hari ini.`;
+  }
+}
+
+async function fetchBulkStatus() {
+  if (bulkStatusLoading) return;
+  bulkStatusLoading = true;
+  bulkLimitHelp.textContent = "Memuat limit Bulk...";
+
+  try {
+    const response = await fetch("/api/bulk-status", { headers: { accept: "application/json" } });
+    const data = await response.json();
+    if (!response.ok || data?.status === false) throw new Error();
+    applyBulkStatus(data);
+  } catch {
+    bulkStatus = null;
+    bulkAmount.max = "100";
+    bulkSubmit.disabled = false;
+    bulkLimitHelp.textContent = "Status limit sementara tidak tersedia. Server tetap memeriksa setiap request.";
+  } finally {
+    bulkStatusLoading = false;
+  }
+}
 
 function setActiveNavigation(active) {
   const onMain = active === "main";
@@ -430,13 +482,11 @@ function showMain(scroll = true) {
 }
 
 function showTools(tab = "bulk", scroll = true) {
-  openBotOnlyModal();
-  return;
-
   activationCard.classList.add("hidden");
   guideCard.classList.add("hidden");
   toolsPanel.classList.remove("hidden");
   selectToolTab(tab);
+  if (tab === "bulk") fetchBulkStatus();
 
   if (scroll) {
     window.setTimeout(() => {
@@ -473,12 +523,12 @@ mainToggle?.addEventListener("click", () => {
 
 bulkToggle?.addEventListener("click", () => {
   lastToolToggle = bulkToggle;
-  openBotOnlyModal();
+  showTools("bulk");
 });
 
 inboxToggle?.addEventListener("click", () => {
   lastToolToggle = inboxToggle;
-  openBotOnlyModal();
+  showTools("inbox");
 });
 
 toolsClose?.addEventListener("click", hideTools);
@@ -937,15 +987,13 @@ function renderInboxResults(data, email) {
 
 bulkForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  openBotOnlyModal();
-  return;
-
   clearToolNotice(bulkNotice);
   bulkResults.classList.add("hidden");
 
   const amount = Number(bulkAmount.value);
-  if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
-    setToolNotice(bulkNotice, "error", "Jumlah bulk harus berupa angka 1 sampai 100.");
+  const maximum = effectiveBulkMax(bulkStatus);
+  if (!Number.isInteger(amount) || amount < 1 || amount > maximum) {
+    setToolNotice(bulkNotice, "error", `Maksimal ${maximum} akun per request.`);
     return;
   }
 
@@ -959,22 +1007,32 @@ bulkForm?.addEventListener("submit", async (event) => {
       "success",
       getMessage(data, "Email Premium berhasil dibuat dan siap dipakai.")
     );
+    await fetchBulkStatus();
   } catch (error) {
+    const code = error.code;
+    const limit = Number(error.data?.bulk_max ?? error.data?.data?.bulk_max ?? bulkStatus?.bulk_max);
+    if (code === "BULK_DAILY_LIMIT_EXCEEDED") {
+      setToolNotice(bulkNotice, "error", "Kuota Bulk Web hari ini habis.");
+      openBotOnlyModal();
+      await fetchBulkStatus();
+    } else if (code === "BULK_MAX_EXCEEDED") {
+      setToolNotice(bulkNotice, "error", `Maksimal ${Number.isFinite(limit) ? limit : effectiveBulkMax(bulkStatus)} akun per request.`);
+      await fetchBulkStatus();
+    } else {
     setToolNotice(
       bulkNotice,
       "error",
-      error.message || "Email Premium gagal dibuat."
+      "Email Premium gagal dibuat. Silakan coba lagi."
     );
+    }
   } finally {
     setToolBusy(bulkSubmit, bulkButtonText, false, "", "Buat email Premium");
+    if (bulkStatus && effectiveBulkMax(bulkStatus) === 0) bulkSubmit.disabled = true;
   }
 });
 
 inboxForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  openBotOnlyModal();
-  return;
-
   clearToolNotice(inboxNotice);
   inboxResults.classList.add("hidden");
 

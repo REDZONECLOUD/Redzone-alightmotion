@@ -6,10 +6,8 @@ Web frontend untuk aktivasi Alight Motion melalui API ZNN.
 
 - Aktivasi / Send: aktif
 - Verify: aktif
-- Bulk: tetap dinonaktifkan di web dan membuka popup menuju bot WhatsApp
-- Baca Email: mengikuti UI project saat ini
-
-Bulk sengaja tidak dibuka kembali oleh patch ini.
+- Bulk: aktif dengan limit dinamis dari backend
+- Baca Email: aktif dan membaca link Alight Motion terbaru
 
 ## Environment Variables
 
@@ -47,6 +45,7 @@ Untuk endpoint non-AM seperti Temp Mail, Vercel hanya mengirim `X-ZNN-Access`.
 - `POST /api/send`
 - `POST /api/verify`
 - `POST /api/inbox`
-- `POST /api/bulk` masih ada di source lama untuk kompatibilitas, tetapi UI Bulk tetap dikunci oleh popup bot WhatsApp.
+- `POST /api/bulk`
+- `GET /api/bulk-status`
 
 Jangan taruh `ZNN_ACCESS_TOKEN` atau `AM_TOKEN` di frontend, `index.html`, atau `app.js`.

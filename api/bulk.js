@@ -9,10 +9,10 @@ export default async function handler(req, res) {
 
   const amount = Number(req.body?.amount);
 
-  if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
+  if (!Number.isSafeInteger(amount) || amount < 1) {
     return sendJson(res, 400, {
       status: false,
-      message: "Jumlah bulk harus berupa angka 1 sampai 100."
+      message: "Jumlah Bulk tidak valid."
     });
   }
 
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   } catch (error) {
     return sendJson(res, Number(error.statusCode || 500), {
       status: false,
-      message: String(error.message || "Bulk email gagal diproses.")
+      message: "Bulk email gagal diproses. Silakan coba lagi."
     });
   }
 }
